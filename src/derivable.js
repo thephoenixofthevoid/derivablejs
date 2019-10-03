@@ -1,4 +1,4 @@
-import * as util from "./util";
+import { setEquals, equals, some } from "./util";
 import { makeReactor } from "./reactors";
 import * as types from "./types";
 import { derive } from "./derivation.js";
@@ -18,15 +18,15 @@ export const derivablePrototype = {
     }
     return derive(() => {
       const arg = this.get();
-      return util.some(arg) ? f(arg) : null;
+      return some(arg) ? f(arg) : null;
     });
   },
 
   orDefault(def) {
-    if (!util.some(def)) {
+    if (!some(def)) {
       throw Error("orDefault requires non-null value");
     }
-    return this.derive(value => (util.some(value) ? value : def));
+    return this.derive(value => (some(value) ? value : def));
   },
 
   react(f, opts) {
@@ -44,22 +44,22 @@ export const derivablePrototype = {
       }
       maybeWhen = maybeWhen.derive(d => d && when.get());
     }
-    makeReactor(this, f, util.assign({}, opts, { when: maybeWhen }));
+    makeReactor(this, f, Object.assign({}, opts, { when: maybeWhen }));
   },
 
   is(other) {
-    return derive(() => util.equals(this, this.get(), unpack(other)));
+    return derive(() => equals(this, this.get(), unpack(other)));
   },
 
-  withEquality(equals) {
-    if (equals) {
-      if (typeof equals !== "function") {
+  withEquality(_equals) {
+    if (_equals) {
+      if (typeof _equals !== "function") {
         throw new Error("equals must be function");
       }
     } else {
-      equals = null;
+      _equals = null;
     }
 
-    return util.setEquals(this._clone(), equals);
+    return setEquals(this._clone(), _equals);
   }
 };

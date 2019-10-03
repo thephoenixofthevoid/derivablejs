@@ -1,4 +1,4 @@
-import * as util from "./util.js";
+import { equals } from "./util.js";
 import { DERIVATION, LENS, REACTOR } from "./types";
 import { UNKNOWN, UNCHANGED, CHANGED } from "./states";
 
@@ -112,7 +112,7 @@ function commitTransaction() {
   if (currentCtx === null) {
     const reactors = [];
     ctx.modifiedAtoms.forEach(a => {
-      if (util.equals(a, a._value, ctx.id2originalValue[a._id])) {
+      if (equals(a, a._value, ctx.id2originalValue[a._id])) {
         a._state = UNCHANGED;
       } else {
         a._state = CHANGED;

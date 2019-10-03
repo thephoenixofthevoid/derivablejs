@@ -16,9 +16,11 @@ export function unpack(thing) {
 function deepUnpack(thing) {
   if (isDerivable(thing)) {
     return thing.get();
-  } else if (Array.isArray(thing)) {
+  }
+  if (Array.isArray(thing)) {
     return thing.map(deepUnpack);
-  } else if (thing.constructor === Object) {
+  }
+  if (thing.constructor === Object) {
     const result = {};
     const keys = Object.keys(thing);
     for (let i = keys.length; i--; ) {
@@ -26,9 +28,9 @@ function deepUnpack(thing) {
       result[prop] = deepUnpack(thing[prop]);
     }
     return result;
-  } else {
-    return thing;
   }
+
+  return thing;
 }
 
 export function struct(arg) {

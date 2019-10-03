@@ -18,3 +18,13 @@ export function isDerivation(x) {
 export function isLens(x) {
   return x && x._type === LENS;
 }
+
+export const isArray = Array.isArray;
+
+export function isPlainObject(x) {
+  return typeof x === "object" && x.constructor === Object;
+}
+
+export function isStruct(x) {
+  return isArray(x) || isPlainObject(x);
+}

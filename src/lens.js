@@ -1,4 +1,4 @@
-import * as util from "./util";
+import { setEquals } from "./util";
 import * as types from "./types";
 import { Derivation } from "./derivation";
 import { atomically } from "./transactions";
@@ -11,7 +11,7 @@ export function Lens(descriptor, meta) {
 
 Object.assign(Lens.prototype, Derivation.prototype, {
   _clone() {
-    return util.setEquals(new Lens(this._descriptor), this._equals);
+    return setEquals(new Lens(this._descriptor), this._equals);
   },
 
   set(value) {

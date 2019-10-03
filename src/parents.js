@@ -1,4 +1,4 @@
-import * as util from "./util";
+import { addToArray } from "./util";
 
 const parentsStack = [];
 let child = null;
@@ -33,7 +33,7 @@ export function maybeCaptureParent(p) {
         // getting rid of it)
         // sneaky hack for doing captureDereferences
         if (child !== void 0) {
-          util.addToArray(p._activeChildren, child);
+          addToArray(p._activeChildren, child);
         }
         if (frame.offset === frame.parents.length) {
           frame.parents.push(p);

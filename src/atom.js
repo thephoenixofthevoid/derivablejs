@@ -1,4 +1,4 @@
-import * as util from "./util";
+import { setEquals, equals, nextId } from "./util";
 import * as transactions from "./transactions";
 import * as parents from "./parents";
 import { ATOM } from "./types";
@@ -8,7 +8,7 @@ import global from "./global";
 const devtoolsHook = global.__DERIVABLE_DEVTOOLS_HOOK__;
 
 export function Atom(value, meta = null) {
-  this._id = util.nextId();
+  this._id = nextId();
   this._activeChildren = [];
   this._value = value;
   this._state = UNCHANGED;
@@ -19,7 +19,7 @@ export function Atom(value, meta = null) {
 
 Object.assign(Atom.prototype, {
   _clone() {
-    return util.setEquals(atom(this._value), this._equals);
+    return setEquals(atom(this._value), this._equals);
   },
 
   set(value) {
@@ -29,7 +29,7 @@ Object.assign(Atom.prototype, {
     this._value = value;
 
     if (!transactions.inTransaction()) {
-      if (!util.equals(this, value, oldValue)) {
+      if (!equals(this, value, oldValue)) {
         try {
           this._state = CHANGED;
           const reactors = [];
