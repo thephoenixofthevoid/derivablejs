@@ -1,7 +1,8 @@
 import { REACTOR, isDerivable } from "./types";
 import { addToArray, isDebug } from "./util";
-import { CHANGED } from "./states";
 import { detach, Derivation } from "./derivation";
+
+import { CHANGED } from "./types";
 
 export function Reactor(parent, react) {
   this._parent = parent;

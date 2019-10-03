@@ -1,6 +1,6 @@
 import { equals } from "./util.js";
 import { DERIVATION, LENS, REACTOR } from "./types";
-import { UNKNOWN, UNCHANGED, CHANGED } from "./states";
+import { UNKNOWN, UNCHANGED, CHANGED } from "./types";
 
 export function mark(node, reactors) {
   node._activeChildren.forEach(child => {

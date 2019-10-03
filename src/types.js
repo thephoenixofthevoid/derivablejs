@@ -3,6 +3,12 @@ export const DERIVATION = "DERIVATION";
 export const LENS = "LENS";
 export const REACTOR = "REACTOR";
 
+// STATES
+export const UNKNOWN = 0;
+export const CHANGED = 1;
+export const UNCHANGED = 2;
+export const DISCONNECTED = 3;
+
 export function isDerivable(x) {
   return x && (x._type === DERIVATION || x._type === ATOM || x._type === LENS);
 }

@@ -7,7 +7,7 @@ import {
 } from "./transactions";
 import { maybeCaptureParent } from "./parents";
 import { ATOM } from "./types";
-import { UNCHANGED, CHANGED } from "./states";
+import { CHANGED, UNCHANGED } from "./types";
 import global from "./global";
 
 const devtoolsHook = global.__DERIVABLE_DEVTOOLS_HOOK__;

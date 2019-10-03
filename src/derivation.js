@@ -1,18 +1,19 @@
 import { isDebug, setEquals, equals, removeFromArray, unique } from "./util";
 import { maybeCaptureParent, withCapturing } from "./parents";
 import { DERIVATION } from "./types";
-import { CHANGED, UNCHANGED, UNKNOWN, DISCONNECTED } from "./states";
+import { CHANGED, UNCHANGED, UNKNOWN, DISCONNECTED } from "./types";
 
 export class Derivation {
   constructor(deriver, meta = null) {
     this._deriver = deriver;
-    this._parents = null;
+    this._parents = [];
     this._type = DERIVATION;
     this._value = unique;
     this._equals = null;
     this._activeChildren = [];
     this._state = DISCONNECTED;
     this._meta = meta;
+    this._compute = () => (this._value = this._deriver());
 
     if (isDebug()) {
       this.stack = Error().stack;
@@ -24,43 +25,26 @@ export class Derivation {
   }
 
   _forceEval() {
-    let newVal = null;
-
-    const newNumParents = withCapturing(this, this._parents, () => {
-      newVal = this._deriver();
-    }).offset;
-
-    this._state = equals(this, newVal, this._value) ? UNCHANGED : CHANGED;
-
-    for (let i = newNumParents, len = this._parents.length; i < len; i++) {
-      const oldParent = this._parents[i];
-      detach(oldParent, this);
-      this._parents[i] = null;
-    }
-
-    this._parents.length = newNumParents;
-    this._value = newVal;
+    const prev = this._value;
+    const frame = withCapturing(this, this._parents, this._compute);
+    while (this._parents.length > frame.offset)
+      detach(this._parents.pop(), this);
+    return (this._state = equals(this, this._value, prev)
+      ? UNCHANGED
+      : CHANGED);
   }
 
   _update() {
     if (this._state === DISCONNECTED) {
-      this._parents = [];
-      // this._state === DISCONNECTED
       return this._forceEval();
-      // this._state === CHANGED ?
     }
 
     if (this._state === UNKNOWN) {
       for (const parent of this._parents) {
         if (parent._state === UNKNOWN) parent._update();
-        if (parent._state === CHANGED) {
-          this._forceEval();
-          break;
-        }
+        if (parent._state === CHANGED) return this._forceEval();
       }
-    }
-    if (this._state === UNKNOWN) {
-      this._state = UNCHANGED;
+      return (this._state = UNCHANGED);
     }
   }
 
@@ -69,9 +53,7 @@ export class Derivation {
     if (this._activeChildren.length > 0) {
       this._update();
     } else {
-      withCapturing(void 0, [], () => {
-        this._value = this._deriver();
-      });
+      withCapturing(void 0, [], this._compute);
     }
     return this._value;
   }
@@ -79,9 +61,12 @@ export class Derivation {
 
 export function detach(parent, child) {
   removeFromArray(parent._activeChildren, child);
-  if (parent._activeChildren.length === 0 && parent._parents != null) {
-    for (const p of parent._parents) detach(p, parent);
-    parent._parents = null;
-    parent._state = DISCONNECTED;
+  if (parent._activeChildren.length === 0) {
+    if (parent._parents) {
+      while (parent._parents.length) {
+        detach(parent._parents.pop(), parent);
+      }
+      parent._state = DISCONNECTED;
+    }
   }
 }
