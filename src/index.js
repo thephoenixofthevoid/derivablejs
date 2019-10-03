@@ -4,7 +4,7 @@ import { Atom, atom } from "./atom";
 import { Lens, lens } from "./lens";
 import { Derivation, derive } from "./derivation";
 import global from "./global";
-import { assign, setDebugMode } from "./util";
+import { setDebugMode } from "./util";
 
 export { isDerivable, isAtom, isLens, isDerivation } from "./types";
 export { unpack, struct } from "./unpack.js";
@@ -22,9 +22,9 @@ export { atom, lens, derive, setDebugMode };
 export { Reactor as __Reactor } from "./reactors";
 export { captureDereferences as __captureDereferences } from "./parents";
 
-assign(Derivation.prototype, derivablePrototype);
-assign(Lens.prototype, derivablePrototype, mutablePrototype);
-assign(Atom.prototype, derivablePrototype, mutablePrototype);
+Object.assign(Derivation.prototype, derivablePrototype);
+Object.assign(Lens.prototype, derivablePrototype, mutablePrototype);
+Object.assign(Atom.prototype, derivablePrototype, mutablePrototype);
 
 if (global.__DERIVABLE_INIT_FLAG__) {
   console.warn(

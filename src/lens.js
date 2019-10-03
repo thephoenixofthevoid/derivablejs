@@ -9,7 +9,7 @@ export function Lens(descriptor, meta) {
   this._type = types.LENS;
 }
 
-util.assign(Lens.prototype, Derivation.prototype, {
+Object.assign(Lens.prototype, Derivation.prototype, {
   _clone() {
     return util.setEquals(new Lens(this._descriptor), this._equals);
   },

@@ -17,7 +17,7 @@ export function Atom(value, meta = null) {
   this._meta = meta;
 }
 
-util.assign(Atom.prototype, {
+Object.assign(Atom.prototype, {
   _clone() {
     return util.setEquals(atom(this._value), this._equals);
   },

@@ -16,7 +16,7 @@ export function Reactor(parent, react) {
   }
 }
 
-util.assign(Reactor.prototype, {
+Object.assign(Reactor.prototype, {
   start() {
     this._active = true;
 
@@ -69,7 +69,7 @@ export function makeReactor(derivable, f, opts) {
     throw Error("the first argument to .react must be a function");
   }
 
-  opts = util.assign(
+  opts = Object.assign(
     {
       once: false,
       skipFirst: false
@@ -111,7 +111,9 @@ export function makeReactor(derivable, f, opts) {
 
   const getCondition = (condition, def) =>
     condition
-      ? typeof condition === "function" ? condition(derivable) : condition.get()
+      ? typeof condition === "function"
+        ? condition(derivable)
+        : condition.get()
       : def;
 
   // listen to from condition, starting the reactor controller

@@ -18,7 +18,7 @@ export function Derivation(deriver, meta = null) {
   }
 }
 
-util.assign(Derivation.prototype, {
+Object.assign(Derivation.prototype, {
   _clone() {
     return util.setEquals(derive(this._deriver), this._equals);
   },
