@@ -1,5 +1,5 @@
 import { isDerivable } from "./types";
-import { derive } from "./derivation";
+import { Derivation } from "./derivation";
 
 /**
  * dereferences a thing if it is dereferencable, otherwise just returns it.
@@ -22,10 +22,8 @@ function deepUnpack(thing) {
   }
   if (thing.constructor === Object) {
     const result = {};
-    const keys = Object.keys(thing);
-    for (let i = keys.length; i--; ) {
-      const prop = keys[i];
-      result[prop] = deepUnpack(thing[prop]);
+    for (const key in thing) {
+      result[key] = deepUnpack(thing[key]);
     }
     return result;
   }
@@ -35,7 +33,7 @@ function deepUnpack(thing) {
 
 export function struct(arg) {
   if (arg.constructor === Object || Array.isArray(arg)) {
-    return derive(() => deepUnpack(arg));
+    return new Derivation(() => deepUnpack(arg));
   } else {
     throw new Error("`struct` expects plain Object or Array");
   }

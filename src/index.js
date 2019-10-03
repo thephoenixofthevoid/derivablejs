@@ -1,8 +1,8 @@
-import { derivablePrototype } from "./derivable";
-import { mutablePrototype } from "./mutable";
-import { Atom, atom } from "./atom";
-import { Lens, lens } from "./lens";
-import { Derivation, derive } from "./derivation";
+import { derivablePrototype, mutablePrototype } from "./api";
+import { withCapturing } from "./parents";
+import { Atom } from "./atom";
+import { Lens } from "./lens";
+import { Derivation } from "./derivation";
 import global from "./global";
 import { setDebugMode } from "./util";
 
@@ -16,11 +16,29 @@ export {
   atomically
 } from "./transactions";
 
-export { atom, lens, derive, setDebugMode };
+export function lens(descriptor, meta) {
+  return new Lens(descriptor, meta);
+}
+
+export function atom(value, meta) {
+  return new Atom(value, meta);
+}
+
+export function derive(f, meta) {
+  if (typeof f !== "function") {
+    throw Error("derive requires function");
+  }
+  return new Derivation(f, meta);
+}
+
+export { setDebugMode };
 
 // Private API
 export { Reactor as __Reactor } from "./reactors";
-export { captureDereferences as __captureDereferences } from "./parents";
+
+export function __captureDereferences(f) {
+  return withCapturing(void 0, [], f).parents;
+}
 
 Object.assign(Derivation.prototype, derivablePrototype);
 Object.assign(Lens.prototype, derivablePrototype, mutablePrototype);

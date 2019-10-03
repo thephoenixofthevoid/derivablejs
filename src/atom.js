@@ -1,56 +1,56 @@
 import { setEquals, equals, nextId } from "./util";
-import * as transactions from "./transactions";
-import * as parents from "./parents";
+import {
+  maybeTrack,
+  inTransaction,
+  mark,
+  processReactors
+} from "./transactions";
+import { maybeCaptureParent } from "./parents";
 import { ATOM } from "./types";
 import { UNCHANGED, CHANGED } from "./states";
 import global from "./global";
 
 const devtoolsHook = global.__DERIVABLE_DEVTOOLS_HOOK__;
 
-export function Atom(value, meta = null) {
-  this._id = nextId();
-  this._activeChildren = [];
-  this._value = value;
-  this._state = UNCHANGED;
-  this._type = ATOM;
-  this._equals = null;
-  this._meta = meta;
-}
+export class Atom {
+  constructor(value, meta = null) {
+    this._id = nextId();
+    this._type = ATOM;
+    this._activeChildren = [];
+    this._value = value;
+    this._state = UNCHANGED;
+    this._equals = null;
+    this._meta = meta;
+  }
 
-Object.assign(Atom.prototype, {
   _clone() {
-    return setEquals(atom(this._value), this._equals);
-  },
+    return setEquals(new Atom(this._value), this._equals);
+  }
 
   set(value) {
-    transactions.maybeTrack(this);
+    maybeTrack(this);
 
     const oldValue = this._value;
     this._value = value;
 
-    if (!transactions.inTransaction()) {
-      if (!equals(this, value, oldValue)) {
-        try {
-          this._state = CHANGED;
-          const reactors = [];
-          transactions.mark(this, reactors);
-          transactions.processReactors(reactors);
-        } finally {
-          this._state = UNCHANGED;
-        }
-      }
+    if (inTransaction()) return;
+    if (equals(this, value, oldValue)) return;
+
+    try {
+      this._state = CHANGED;
+      const reactors = [];
+      mark(this, reactors);
+      processReactors(reactors);
+    } finally {
+      this._state = UNCHANGED;
     }
-  },
+  }
 
   get() {
     if (typeof devtoolsHook === "function") {
       devtoolsHook("captureAtom", this);
     }
-    parents.maybeCaptureParent(this);
+    maybeCaptureParent(this);
     return this._value;
   }
-});
-
-export function atom(value, meta) {
-  return new Atom(value, meta);
 }

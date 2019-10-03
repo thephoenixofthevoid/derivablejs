@@ -4,7 +4,11 @@ import uglify from "rollup-plugin-uglify";
 export default [
   {
     input: "src/index.js",
-    plugins: [buble()],
+    plugins: [
+      buble({
+        transforms: { dangerousForOf: true }
+      })
+    ],
     output: [
       {
         format: "cjs",
@@ -30,7 +34,9 @@ export default [
   {
     input: "src/index.js",
     plugins: [
-      buble(),
+      buble({
+        transforms: { dangerousForOf: true }
+      }),
       uglify({
         mangle: {
           toplevel: true

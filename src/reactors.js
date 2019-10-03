@@ -1,7 +1,7 @@
-import * as types from "./types";
-import * as util from "./util";
+import { REACTOR, isDerivable } from "./types";
+import { addToArray, isDebug } from "./util";
 import { CHANGED } from "./states";
-import { detach, derive } from "./derivation";
+import { detach, Derivation } from "./derivation";
 
 export function Reactor(parent, react) {
   this._parent = parent;
@@ -9,9 +9,9 @@ export function Reactor(parent, react) {
   this._governor = null;
   this._active = false;
   this._reacting = false;
-  this._type = types.REACTOR;
+  this._type = REACTOR;
 
-  if (util.isDebug()) {
+  if (isDebug()) {
     this.stack = Error().stack;
   }
 }
@@ -20,7 +20,7 @@ Object.assign(Reactor.prototype, {
   start() {
     this._active = true;
 
-    util.addToArray(this._parent._activeChildren, this);
+    addToArray(this._parent._activeChildren, this);
 
     this._parent.get();
   },
@@ -30,7 +30,7 @@ Object.assign(Reactor.prototype, {
       this._reacting = true;
       this.react(nextValue);
     } catch (e) {
-      if (util.isDebug()) {
+      if (isDebug()) {
         console.error(this.stack);
       }
       throw e;
@@ -49,33 +49,43 @@ Object.assign(Reactor.prototype, {
   },
 
   _maybeReact() {
-    if (!this._reacting && this._active) {
-      if (this._governor !== null) {
-        this._governor._maybeReact();
-      }
-      // maybe the reactor was stopped by the parent
-      if (this._active) {
-        const nextValue = this._parent.get();
-        if (this._parent._state === CHANGED) {
-          this._force(nextValue);
-        }
+    if (this._reacting || !this._active) return;
+
+    if (this._governor !== null) {
+      this._governor._maybeReact();
+    }
+    // maybe the reactor was stopped by the parent
+    if (this._active) {
+      const nextValue = this._parent.get();
+      if (this._parent._state === CHANGED) {
+        this._force(nextValue);
       }
     }
   }
 });
+
+const assertCondition = (condition, name) => {
+  if (isDerivable(condition)) {
+    return condition;
+  }
+  if (typeof condition === "function") {
+    return condition;
+  }
+  if (typeof condition === "undefined") {
+    return condition;
+  }
+  throw Error(
+    `react ${name} condition must be derivable or function, got: ` +
+      JSON.stringify(condition)
+  );
+};
 
 export function makeReactor(derivable, f, opts) {
   if (typeof f !== "function") {
     throw Error("the first argument to .react must be a function");
   }
 
-  opts = Object.assign(
-    {
-      once: false,
-      skipFirst: false
-    },
-    opts
-  );
+  opts = Object.assign({ once: false, skipFirst: false }, opts);
 
   let skipFirst = opts.skipFirst;
 
@@ -93,22 +103,6 @@ export function makeReactor(derivable, f, opts) {
     }
   });
 
-  const assertCondition = (condition, name) => {
-    if (types.isDerivable(condition)) {
-      return condition;
-    }
-    if (typeof condition === "function") {
-      return condition;
-    }
-    if (typeof condition === "undefined") {
-      return condition;
-    }
-    throw Error(
-      `react ${name} condition must be derivable or function, got: ` +
-        JSON.stringify(condition)
-    );
-  };
-
   const getCondition = (condition, def) =>
     condition
       ? typeof condition === "function"
@@ -125,13 +119,11 @@ export function makeReactor(derivable, f, opts) {
   const $until = assertCondition(opts.until, "until");
   const $when = assertCondition(opts.when, "when");
 
-  const $conds = derive(() => {
-    return {
-      from: getCondition($from, true),
-      until: getCondition($until, false),
-      when: getCondition($when, true)
-    };
-  });
+  const $conds = new Derivation(() => ({
+    from: getCondition($from, true),
+    until: getCondition($until, false),
+    when: getCondition($when, true)
+  }));
 
   let started = false;
 

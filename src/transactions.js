@@ -3,8 +3,7 @@ import { DERIVATION, LENS, REACTOR } from "./types";
 import { UNKNOWN, UNCHANGED, CHANGED } from "./states";
 
 export function mark(node, reactors) {
-  for (let i = 0, len = node._activeChildren.length; i < len; i++) {
-    const child = node._activeChildren[i];
+  node._activeChildren.forEach(child => {
     switch (child._type) {
       case DERIVATION:
       case LENS:
@@ -17,43 +16,51 @@ export function mark(node, reactors) {
         reactors.push(child);
         break;
     }
-  }
+  });
 }
 
 export function processReactors(reactors) {
-  for (let i = 0, len = reactors.length; i < len; i++) {
-    const r = reactors[i];
-    if (r._reacting) {
+  for (const r of reactors) {
+    if (r._reacting)
       throw Error(
         "Synchronous cyclical reactions disallowed. " + "Use setImmediate."
       );
-    }
     r._maybeReact();
   }
 }
 
 const TransactionAbortion = {};
-
 function initiateAbortion() {
   throw TransactionAbortion;
 }
 
-function TransactionContext(parent) {
-  this.parent = parent;
-  this.id2originalValue = {};
-  this.modifiedAtoms = [];
-}
+class TransactionContext {
+  constructor(parent) {
+    this.parent = parent;
+    this.id2originalValue = {};
+    this.modifiedAtoms = [];
+  }
 
-export function maybeTrack(atom) {
-  if (currentCtx !== null) {
-    if (!(atom._id in currentCtx.id2originalValue)) {
-      currentCtx.modifiedAtoms.push(atom);
-      currentCtx.id2originalValue[atom._id] = atom._value;
-    }
+  preserveOriginalValue(atom) {
+    if (atom._id in this.id2originalValue) return;
+    this.modifiedAtoms.push(atom);
+    this.id2originalValue[atom._id] = atom._value;
+  }
+
+  undo() {
+    this.modifiedAtoms.forEach(atom => {
+      atom._value = this.id2originalValue[atom._id];
+      atom._state = UNCHANGED;
+      mark(atom, []);
+    });
   }
 }
 
-export let currentCtx = null;
+export function maybeTrack(atom) {
+  if (currentCtx) currentCtx.preserveOriginalValue(atom);
+}
+
+let currentCtx = null;
 
 export function inTransaction() {
   return currentCtx !== null;
@@ -109,59 +116,48 @@ function commitTransaction() {
   const ctx = currentCtx;
   currentCtx = ctx.parent;
 
-  if (currentCtx === null) {
-    const reactors = [];
-    ctx.modifiedAtoms.forEach(a => {
-      if (equals(a, a._value, ctx.id2originalValue[a._id])) {
-        a._state = UNCHANGED;
-      } else {
-        a._state = CHANGED;
-        mark(a, reactors);
-      }
-    });
-    processReactors(reactors);
-    ctx.modifiedAtoms.forEach(a => {
+  if (currentCtx !== null) return;
+
+  const reactors = [];
+  ctx.modifiedAtoms.forEach(a => {
+    if (equals(a, a._value, ctx.id2originalValue[a._id])) {
       a._state = UNCHANGED;
-    });
-  }
+    } else {
+      a._state = CHANGED;
+      mark(a, reactors);
+    }
+  });
+  processReactors(reactors);
+  ctx.modifiedAtoms.forEach(a => {
+    a._state = UNCHANGED;
+  });
 }
 
 function abortTransaction() {
-  const ctx = currentCtx;
-  currentCtx = ctx.parent;
-  ctx.modifiedAtoms.forEach(atom => {
-    atom._value = ctx.id2originalValue[atom._id];
-    atom._state = UNCHANGED;
-    mark(atom, []);
-  });
+  currentCtx.undo();
+  currentCtx = currentCtx.parent;
 }
 
 let _tickerRefCount = 0;
 
+function tick() {
+  commitTransaction();
+  beginTransaction();
+}
+
+function reset() {
+  abortTransaction();
+  beginTransaction();
+}
+
 export function ticker() {
-  if (_tickerRefCount === 0) {
-    beginTransaction();
+  if (_tickerRefCount++ === 0) beginTransaction();
+  const _ = { tick, reset, release };
+  function release() {
+    _.release = _.tick = _.reset = () => {
+      throw new Error("trying to use after ticker release");
+    };
+    if (--_tickerRefCount === 0) commitTransaction();
   }
-  _tickerRefCount++;
-  let done = false;
-  return {
-    tick() {
-      if (done) throw new Error("trying to use ticker after release");
-      commitTransaction();
-      beginTransaction();
-    },
-    reset() {
-      if (done) throw new Error("trying to use ticker after release");
-      abortTransaction();
-      beginTransaction();
-    },
-    release() {
-      if (done) throw new Error("ticker already released");
-      _tickerRefCount--;
-      done = true;
-      if (_tickerRefCount === 0) {
-        commitTransaction();
-      }
-    }
-  };
+  return _;
 }
